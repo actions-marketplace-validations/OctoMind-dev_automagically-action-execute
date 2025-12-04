@@ -1,8 +1,8 @@
 name: Test Execute Action
 
-on: 
+on:
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 permissions:
   contents: read
@@ -12,18 +12,32 @@ jobs:
     runs-on: ubuntu-latest
     name: Execute Action Test
     steps:
-      - uses: pnpm/action-setup@v2.4.0
-        with:
-          version: latest
-
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
-          cache: 'pnpm'
-          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Corepack enable
+        shell: bash
+        run: |
+          npm install -g corepack@latest
+          corepack enable
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v4
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-cache-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-cache-
 
       - name: install dependencies
         run: pnpm install
@@ -31,10 +45,80 @@ jobs:
       - name: package
         run: pnpm run build
 
-      - name: Execute Automagically
+      - name: Execute Automagically non-blocking
+        id: automagically-non-blocking
+        uses: ./
+        with:
+          url: 'https://storage.googleapis.com/mocktopus/index.html'
+          testTargetId: '35c8bfca-48d2-4eb2-8042-4ee50707a295'
+          token: ${{ secrets.AUTOMAGICALLY_TOKEN }}
+
+      - name: Execute Automagically non-blocking non-default
+        id: automagically-non-blocking-non-default
+        uses: ./
+        with:
+          url: 'https://storage.googleapis.com/mocktopus/index.html'
+          testTargetId: '35c8bfca-48d2-4eb2-8042-4ee50707a295'
+          token: ${{ secrets.AUTOMAGICALLY_TOKEN }}
+          blocking: false
+
+      - name: Execute Automagically blocking
+        id: automagically-blocking
+        uses: ./
+        with:
+          url: 'https://storage.googleapis.com/mocktopus/index.html'
+          testTargetId: '35c8bfca-48d2-4eb2-8042-4ee50707a295'
+          token: ${{ secrets.AUTOMAGICALLY_TOKEN }}
+          blocking: true
+
+      - name: Execute Automagically with environment
         id: automagically
         uses: ./
         with:
           url: 'https://storage.googleapis.com/mocktopus/index.html'
           testTargetId: '35c8bfca-48d2-4eb2-8042-4ee50707a295'
           token: ${{ secrets.AUTOMAGICALLY_TOKEN }}
+          environmentName: "test"
+
+      - name: Execute Automagically with browser
+        id: automagically-browser
+        uses: ./
+        with:
+          url: 'https://storage.googleapis.com/mocktopus/index.html'
+          testTargetId: '35c8bfca-48d2-4eb2-8042-4ee50707a295'
+          token: ${{ secrets.AUTOMAGICALLY_TOKEN }}
+          browser: "FIREFOX"
+
+      - name: Execute Automagically with breakpoint
+        id: automagically-breakpoint
+        uses: ./
+        with:
+          url: 'https://storage.googleapis.com/mocktopus/index.html'
+          testTargetId: '35c8bfca-48d2-4eb2-8042-4ee50707a295'
+          token: ${{ secrets.AUTOMAGICALLY_TOKEN }}
+          breakpoint: "MOBILE"
+
+      - name: Execute Automagically with overwriting variables
+        id: automagically-variable-overwrite
+        uses: ./
+        with:
+          url: 'https://storage.googleapis.com/mocktopus/index.html'
+          testTargetId: '35c8bfca-48d2-4eb2-8042-4ee50707a295'
+          token: ${{ secrets.AUTOMAGICALLY_TOKEN }}
+          environmentName: "test"
+          variablesToOverwrite: |-
+            VARIABLE1:someValue
+            VARIABLE2:someOtherValue
+
+      - name: Execute Automagically with tags
+        id: automagically-tags-filter
+        uses: ./
+        with:
+          url: 'https://storage.googleapis.com/mocktopus/index.html'
+          testTargetId: '35c8bfca-48d2-4eb2-8042-4ee50707a295'
+          token: ${{ secrets.AUTOMAGICALLY_TOKEN }}
+          environmentName: "test"
+          tags: |-
+            critical
+            login
+      

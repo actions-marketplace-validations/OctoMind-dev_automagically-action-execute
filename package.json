@@ -2,11 +2,13 @@
   "name": "automagically-action-execute",
   "version": "0.0.0",
   "private": true,
-  "main": "lib/main.js",
   "type": "module",
+  "packageManager": "pnpm@9.14.2+sha512.6e2baf77d06b9362294152c851c4f278ede37ab1eba3a55fda317a4a17b209f4dbb973fb250a77abc463a341fcb1f17f17cfa24091c4eb319cda0d9b84278387",
   "scripts": {
-    "lint": "eslint src/**/*.ts",
-    "build": "rimraf ./dist && tsc && ncc build"
+    "lint": "eslint src/**/*.ts -c .eslintrc.json",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "build": "rimraf ./dist && ncc build src/index.ts"
   },
   "repository": {
     "type": "git",
@@ -15,20 +17,24 @@
   "author": "OctoMind-dev",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.10.1",
-    "@actions/github": "^6.0.0",
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.1",
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
-    "@types/node": "^20.9.3",
-    "@typescript-eslint/parser": "^6.12.0",
-    "@vercel/ncc": "^0.38.1",
-    "eslint": "^8.54.0",
-    "eslint-config-prettier": "^9.0.0",
-    "eslint-plugin-github": "^4.10.1",
-    "eslint-plugin-prettier": "^5.0.1",
-    "prettier": "^3.1.0",
-    "rimraf": "^5.0.5",
-    "typescript": "^5.3.2"
+    "@types/node": "^24.10.1",
+    "@typescript-eslint/parser": "^8.48.1",
+    "@vercel/ncc": "^0.38.3",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-github": "^5.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.7.3",
+    "rimraf": "^6.1.2",
+    "typescript": "^5.7.3",
+    "vite": "^7.2.6",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^4.0.15"
   }
 }

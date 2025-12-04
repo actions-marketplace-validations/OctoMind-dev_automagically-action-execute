@@ -13,6 +13,25 @@ inputs:
   automagicallyBaseUrl:
     description: 'Base URL of the automagically instance, for switching between production and staging. Defaults to Production url'
     required: false
+  blocking:
+    description: 'If the pipeline should be blocked until all test results in the test report are passed'
+    required: false
+    default: false
+  environmentName:
+    description: "Optional, name of the environment you want to execute your tests against"
+    required: false
+    default: "default"
+  breakpoint:
+    description: "Optional, breakpoint to execute your tests against, available are DESKTOP, MOBILE, TABLET"
+    required: false
+    default: "DESKTOP"
+  browser:
+    description: "Optional, browser to execute your tests with, available are CHROMIUM, FIREFOX, SAFARI"
+    required: false
+    default: "CHROMIUM"
+  variablesToOverwrite:
+    description: "Optional, variables to overwrite in the environment"
+    required: false
 outputs:
   testReportUrl:
     description: 'Url to resulting test report'
