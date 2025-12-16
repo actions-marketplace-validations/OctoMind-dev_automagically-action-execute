@@ -32,11 +32,14 @@ inputs:
   variablesToOverwrite:
     description: "Optional, variables to overwrite in the environment"
     required: false
+  ymlDirectory:
+    description: "Optional, directory where the yml files are located"
+    required: false
 outputs:
   testReportUrl:
     description: 'Url to resulting test report'
 runs:
-  using: 'node20'
+  using: 'node24'
   main: 'dist/index.js'
 
 branding:

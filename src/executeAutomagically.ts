@@ -5,8 +5,11 @@ import * as core from '@actions/core'
 // eslint-disable-next-line import/no-namespace
 import * as github from '@actions/github'
 import {setTimeout} from 'node:timers'
-import {fetchJson} from './fetchJson'
-import {ExecuteResponse, TestReport} from './types'
+import {createClientFromUrlAndApiKey} from '@octomind/octomind/client'
+import {push} from '@octomind/octomind/push'
+import {TestReport} from './types'
+import {existsSync, readdirSync} from 'node:fs'
+import {join} from 'node:path'
 
 const TIME_BETWEEN_POLLS_MILLISECONDS = 5_000
 const MAXIMUM_POLL_TIME_MILLISECONDS = 2 * 60 * 60 * 1000
@@ -30,12 +33,38 @@ const multilineMappingToObject = (
   return Object.fromEntries(keySplitOff)
 }
 
-const getTestReportApiUrl = (
-  automagicallyUrl: string,
-  testTargetId: string,
-  testReportId: string
-) =>
-  `${automagicallyUrl}/api/apiKey/v3/test-targets/${testTargetId}/test-reports/${testReportId}`
+export const pushIfYmlsExist = async ({
+  sourceDir,
+  client,
+  testTargetId
+}: {
+  sourceDir: string
+  client: ReturnType<typeof createClientFromUrlAndApiKey>
+  testTargetId: string
+}): Promise<{versionIds: string[]} | undefined> => {
+  const directoryExists = existsSync(sourceDir)
+  const hasYmls =
+    directoryExists &&
+    readdirSync(sourceDir).some(file => file.endsWith('.yaml'))
+
+  if (hasYmls) {
+    return push({
+      sourceDir,
+      client,
+      testTargetId,
+      onError: error => {
+        if (error) {
+          core.setFailed(
+            `error occurred when trying to push local ymls ${error}`
+          )
+          process.exit(1)
+        }
+      }
+    })
+  }
+
+  return undefined
+}
 
 export const executeAutomagically = async ({
   pollingIntervalInMilliseconds = TIME_BETWEEN_POLLS_MILLISECONDS,
@@ -95,36 +124,64 @@ export const executeAutomagically = async ({
   const variablesToOverwriteObject =
     multilineMappingToObject(variablesToOverwrite)
   const tags = core.getMultilineInput('tags')
+  const ymlSourceDirectory = core.getInput('ymlDirectory')
+  const ymlDirectoryWithFallback =
+    ymlSourceDirectory.length > 0
+      ? ymlSourceDirectory
+      : join(process.cwd(), '.octomind')
+
+  const urlWithApiPostfix = new URL(automagicallyUrl)
+  urlWithApiPostfix.pathname += '/api'
+
+  const client = createClientFromUrlAndApiKey({
+    baseUrl: urlWithApiPostfix.href,
+    apiKey: token
+  })
 
   try {
-    const executeResponse = await fetchJson<ExecuteResponse>({
-      url: getExecuteUrl(automagicallyUrl),
-      method: 'POST',
-      token,
-      body: JSON.stringify({
+    const pushed = await pushIfYmlsExist({
+      client,
+      testTargetId,
+      sourceDir: ymlDirectoryWithFallback
+    })
+
+    const executeResponse = await client.POST('/apiKey/v3/execute', {
+      body: {
         url,
         testTargetId,
         environmentName,
         variablesToOverwrite: variablesToOverwriteObject,
         tags,
-        browser,
-        breakpoint,
+        browser: browser as 'SAFARI' | 'CHROMIUM' | 'FIREFOX',
+        breakpoint: breakpoint as 'DESKTOP' | 'TABLET' | 'MOBILE',
         context: {
           source: 'github',
           ...context
-        }
-      })
+        },
+        testCaseVersionIds: pushed?.versionIds
+      }
     })
 
-    const testReportUrl = executeResponse.testReportUrl
-    core.setOutput('testReportUrl', executeResponse.testReportUrl)
+    if (
+      !executeResponse.data?.testReportUrl ||
+      !executeResponse.data?.testReport ||
+      !executeResponse.data.testReport.id
+    ) {
+      core.setFailed('execute did not return any data')
+      throw new Error('execute did not return any data')
+    }
+
+    const testReportUrl = executeResponse.data.testReportUrl
+
+    core.setOutput('testReportUrl', testReportUrl)
     await core.summary
       .addHeading('🐙 Octomind')
       .addLink('View your Test Report', testReportUrl)
       .write()
 
     if (blocking) {
-      let currentStatus = executeResponse.testReport.status
+      let currentStatus: TestReport['status'] | undefined =
+        executeResponse.data.testReport.status
       const start = Date.now()
       let now = start
 
@@ -132,16 +189,18 @@ export const executeAutomagically = async ({
         currentStatus === 'WAITING' &&
         now - start < maximumPollingTimeInMilliseconds
       ) {
-        const testReport = await fetchJson<TestReport>({
-          method: 'GET',
-          token,
-          url: getTestReportApiUrl(
-            automagicallyUrl,
-            testTargetId,
-            executeResponse.testReport.id
-          )
-        })
-        currentStatus = testReport.status
+        const testReport = await client.GET(
+          '/apiKey/v3/test-targets/{testTargetId}/test-reports/{testReportId}',
+          {
+            params: {
+              path: {
+                testTargetId,
+                testReportId: executeResponse.data.testReport.id
+              }
+            }
+          }
+        )
+        currentStatus = testReport.data?.status
 
         await sleep(pollingIntervalInMilliseconds)
         now = Date.now()
