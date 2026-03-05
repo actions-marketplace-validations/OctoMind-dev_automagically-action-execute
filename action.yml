@@ -1,7 +1,7 @@
 name: 'AutomagicallyExecutor'
 description: 'Trigger Automagically given a url and a valid token'
 inputs:
-  url: 
+  url:
     description: 'Url of the app to test'
     required: true
   token:
@@ -16,24 +16,31 @@ inputs:
   blocking:
     description: 'If the pipeline should be blocked until all test results in the test report are passed'
     required: false
-    default: false
+    default: 'false'
   environmentName:
-    description: "Optional, name of the environment you want to execute your tests against"
+    description: 'Optional, name of the environment you want to execute your tests against'
     required: false
-    default: "default"
+    default: 'default'
   breakpoint:
-    description: "Optional, breakpoint to execute your tests against, available are DESKTOP, MOBILE, TABLET"
+    description: 'Optional, breakpoint to execute your tests against, available are DESKTOP, MOBILE, TABLET'
     required: false
-    default: "DESKTOP"
+    default: 'DESKTOP'
   browser:
-    description: "Optional, browser to execute your tests with, available are CHROMIUM, FIREFOX, SAFARI"
+    description: 'Optional, browser to execute your tests with, available are CHROMIUM, FIREFOX, SAFARI'
     required: false
-    default: "CHROMIUM"
+    default: 'CHROMIUM'
   variablesToOverwrite:
-    description: "Optional, variables to overwrite in the environment"
+    description: 'Optional, variables to overwrite in the environment'
     required: false
   ymlDirectory:
-    description: "Optional, directory where the yml files are located"
+    description: 'Optional, directory where the yml files are located'
+    required: false
+  action:
+    description: "Optional, type of action to perform: 'execute-tests' (default) or 'explore-test-plan'"
+    required: false
+    default: 'execute-tests'
+  tags:
+    description: 'Optional, tags to filter test cases for execution'
     required: false
 outputs:
   testReportUrl:
