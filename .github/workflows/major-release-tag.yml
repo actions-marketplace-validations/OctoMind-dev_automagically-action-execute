@@ -18,7 +18,7 @@ jobs:
           echo "MAJOR=${VERSION%%.*}" >> $GITHUB_OUTPUT
 
       - name: Tag Repo
-        uses: richardsimko/update-tag@v1
+        uses: richardsimko/update-tag@v2
         with:
           tag_name: ${{steps.variables.outputs.MAJOR}}
         env:
